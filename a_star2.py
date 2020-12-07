@@ -43,7 +43,7 @@ class AStarPath:
     def check_validity(self, node):
         x_position = self.calc_grid_position(node.x, self.x_min)
         y_position = self.calc_grid_position(node.y, self.y_min)
-
+        print(node.x, node.y)
         if x_position < self.x_min:
             return False
         elif y_position < self.y_min:
@@ -184,7 +184,7 @@ def main():
     grid_size = 2.0
     robot_radius = 3.0
    # pdb.set_trace()
-    image = cv2.imread('maze3.jpg')
+    image = cv2.imread('maze2.jpg')
     image = cv2.resize(image, (200,200))
     # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -201,6 +201,7 @@ def main():
     # pdb.set_trace()
     # if show_animation:
     fig = plt.figure()
+    print(len(x_obstacle),len(y_obstacle))
 
     plt.plot(x_obstacle, y_obstacle, ".k")
     plt.plot(start_x, start_y, "og")
@@ -248,7 +249,7 @@ def main():
         plt.plot(x_out_path[i], y_out_path[i], "o", color='red')
         return patch
 
-    ani = FuncAnimation(fig, animate,  init_func=init, frames=250, interval=50)
+    ani = FuncAnimation(fig, animate,  init_func=init, frames=250, interval=40)
     plt.plot(visited_points_x, visited_points_y, ".y")
     plt.show()
 
