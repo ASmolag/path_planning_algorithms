@@ -2,8 +2,11 @@ import random
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import cv2
+import csv
 from scipy.spatial import cKDTree
+from matplotlib.animation import FuncAnimation
 
 # parameter
 N_SAMPLE = 1000  # number of sample_points
@@ -59,6 +62,29 @@ class PRM:
         theta = math.atan2(dy, dx)
         return d, theta
 
+    def calc_angle(self,x_out,y_out):
+        angle=[]
+        for i in range(len(x_out)-1):
+            if x_out[i+1]==x_out[i] and y_out[i+1] < y_out[i]:
+                angle.append(0)  # top
+            if x_out[i+1]==x_out[i] and y_out[i+1] > y_out[i]:
+                angle.append(np.pi) # down
+
+            if x_out[i+1] < x_out[i] and y_out[i+1] == y_out[i]:
+                angle.append(-np.pi/2) #right
+            if x_out[i+1] > x_out[i] and y_out[i+1] == y_out[i]:
+                angle.append(np.pi/2) #left
+
+            if x_out[i+1]>x_out[i] and y_out[i+1]<y_out[i]:
+                angle.append(np.pi/4) #leftdown
+            if x_out[i+1]<x_out[i] and y_out[i+1]<y_out[i]:
+                angle.append(-np.pi/4) #rightdown
+            if x_out[i+1]>x_out[i] and y_out[i+1]>y_out[i]:
+                angle.append(np.pi*2/3) #leftup
+            if x_out[i+1]<x_out[i] and y_out[i+1]>y_out[i]:
+                angle.append(-np.pi*2/3) #rightdown
+        return angle
+
     def calc_xy(self, position, min_position):
         return round((position-min_position) / self.grid_size)
 
@@ -97,8 +123,8 @@ class PRM:
         road_map = self.generate_road_map(sample_x, sample_y, obstacle_kd_tree)
 
         rx, ry, visited_point_x, visited_point_y = self.dijkstra_planning(road_map, sample_x, sample_y)
-
-        return rx, ry, visited_point_x, visited_point_y
+        angle =self.calc_angle(rx, ry)
+        return (rx, ry, visited_point_x, visited_point_y,angle)
 
 
     def is_collision(self, sx, sy, gx, gy, obstacle_kd_tree):
@@ -210,7 +236,7 @@ class PRM:
                     open_set[n_id] = node
 
         if path_found is False:
-            return [], []
+            return [], [], [], []
 
         # generate final course
         rx, ry = [goal_node.x], [goal_node.y]
@@ -249,16 +275,16 @@ def main():
     print(__file__ + " start!!")
 
     # start and goal position
-    sx = 25.0  # [m]
-    sy = 174.0  # [m]
-    gx = 180.0  # [m]
-    gy = 34.0  # [m]
+    sx = 20#25.0  # [m]
+    sy = 175#174.0  # [m]
+    gx = 166#180.0  # [m]
+    gy = 18#34.0  # [m]
     robot_size = 3.0  # [m]
 
     grid_size = 2.0
-    robot_radius = 2.0
+    robot_radius = 3.0
 
-    image = cv2.imread("maze3.jpg")
+    image = cv2.imread("maze2.jpg")
     image = cv2.resize(image, (200, 200))
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     (width, length) = gray.shape
@@ -278,15 +304,43 @@ def main():
 
     prm = PRM([sx,sy],[gx,gy],x_obstacle,y_obstacle,robot_radius,grid_size)
     # rx, ry = prm_planning(sx, sy, gx, gy, x_obstacle, y_obstacle, robot_size)
-    rx, ry, visited_point_x, visited_point_y = prm.prm_planning()
+    rx, ry, visited_point_x, visited_point_y,angle = prm.prm_planning()
 
+    path=list(zip(rx,ry))
+    with open('prm_maze2.csv','w+') as csvfile:
+        filewriter= csv.writer(csvfile)
+        filewriter.writerows(path)
+    patch = patches.Rectangle((sx, sy), robot_radius, 7, 0, fc='m')
 
-    
+    rx.reverse()
+    ry.reverse()
+    angle.reverse()
 
-    if show_animation:
-        plt.plot(rx, ry, "-r")
-        plt.pause(0.001)
-        plt.show()
+    def init():
+        # graph, = plt.plot([], [], 'og')
+
+        plt.gca().add_patch(patch)
+        return patch
+
+    def cal_center_robot(x_out, y_out, angle):
+        if angle == -np.pi/2 or angle == np.pi or angle == -np.pi*2/3 or angle == -np.pi/4:
+            return x_out + robot_radius / 2, y_out + robot_radius /2
+        if angle == np.pi/2 or angle == 0 or angle == np.pi*2/3 or angle == np.pi/4:
+            return x_out - robot_radius / 2, y_out - robot_radius /2
+
+    def animate(i):
+        # graph.set_data(x_out_path[i], y_out_path[i])
+        #patch.set_xy([x_out_path[i]+2, y_out_path[i]+2])
+        x,y =cal_center_robot(rx[i],ry[i],angle[i])
+        patch.set_xy([x,y])
+        patch.angle = np.rad2deg(angle[i])
+        # plt.plot(x_out_path[i], y_out_path[i], "*", color='yellow')
+        plt.plot(rx[i], ry[i], "o", color='red')
+        return patch
+
+    ani = FuncAnimation(fig, animate,  init_func=init, frames=250, interval=40)
+    plt.plot(visited_point_x, visited_point_y, ".y")
+    plt.show()
 
 
 if __name__ == "__main__":

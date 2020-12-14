@@ -3,9 +3,10 @@ import math
 import random
 import pdb
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import numpy as np
-
-show_animation = False
+from matplotlib.animation import FuncAnimation
+show_animation = True
 
 
 class RRT:
@@ -67,6 +68,7 @@ class RRT:
         """
 
         self.node_list = [self.start]
+        self.list_of_angle = [0]
         # for _ in range(self.max_iter):
         while True:
             rnd_node = self.get_random_node()
@@ -74,12 +76,13 @@ class RRT:
             nearest_ind = self.get_nearest_node_index(self.node_list, rnd_node)
             nearest_node = self.node_list[nearest_ind]
 
-            new_node = self.steer(nearest_node, rnd_node, self.expand_dis)
+            new_node, angle = self.steer(nearest_node, rnd_node, self.expand_dis)
 
             # if self.check_collision(new_node, self.obstacle_list):
             #     self.node_list.append(new_node)
             if self.check_validity(new_node):
                 self.node_list.append(new_node)
+                self.list_of_angle.append(angle)
 
             # print("node_list",self.node_list[1].x,self.node_list[1].y)
             print("len list",len(self.node_list))
@@ -89,7 +92,7 @@ class RRT:
             # print("node z calc", self.node_list[-1].x, self.node_list[-1].y)
             if self.calc_dist_to_goal(self.node_list[-1].x,
                                       self.node_list[-1].y) <= self.close:
-                final_node = self.steer(self.node_list[-1], self.end,
+                final_node, _ = self.steer(self.node_list[-1], self.end,
                                         self.expand_dis)
                 # print("final node", final_node.x, final_node.y)
                 if self.check_validity(final_node):
@@ -117,7 +120,7 @@ class RRT:
             new_node.path_x.append(new_node.x)
             new_node.path_y.append(new_node.y)
 
-        d, _ = self.calc_distance_and_angle(new_node, to_node)
+        d, angle = self.calc_distance_and_angle(new_node, to_node)
         if d <= self.path_resolution:
             new_node.path_x.append(to_node.x)
             new_node.path_y.append(to_node.y)
@@ -128,21 +131,25 @@ class RRT:
         # print("new node",new_node.x,new_node.y)
         new_node.x,new_node.y = round(new_node.x),round(new_node.y)
         # print("new node round",new_node.x,new_node.y)
-        return new_node
+        return new_node, angle
 
     def generate_final_course(self, goal_ind):
         path = [[self.end.x, self.end.y]]
+        path_angles = [[0]]
         node = self.node_list[goal_ind]
         # print("node_list",node)
-        # print("len list",len(node))
+        print("len list generate_final_course",len(self.node_list))
         while node.parent is not None:
             path.append([self.calc_grid_position(node.x,self.x_min), self.calc_grid_position(node.y,self.y_min)])
             # path.append([node.x, node.y])
+            path_angles.append(self.list_of_angle[self.node_list.index(node)])
             node = node.parent
         # path.append([node.x, node.y])
         path.append([self.calc_grid_position(node.x,self.x_min), self.calc_grid_position(node.y,self.y_min)])
+        path_angles.append(self.list_of_angle[self.node_list.index(node)])
+
         print("generate path",path)
-        return path
+        return path, path_angles
 
     def calc_dist_to_goal(self, x, y):
         dx = x - self.end.x
@@ -205,6 +212,29 @@ class RRT:
             return False
         return True
 
+    def calc_angle(self,x_out,y_out):
+        angle=[]
+        for i in range(len(x_out)-1):
+            if x_out[i+1]==x_out[i] and y_out[i+1] < y_out[i]:
+                angle.append(0)  # top
+            if x_out[i+1]==x_out[i] and y_out[i+1] > y_out[i]:
+                angle.append(np.pi) # down
+
+            if x_out[i+1] < x_out[i] and y_out[i+1] == y_out[i]:
+                angle.append(-np.pi/2) #right
+            if x_out[i+1] > x_out[i] and y_out[i+1] == y_out[i]:
+                angle.append(np.pi/2) #left
+
+            if x_out[i+1]>x_out[i] and y_out[i+1]<y_out[i]:
+                angle.append(np.pi/4) #leftdown
+            if x_out[i+1]<x_out[i] and y_out[i+1]<y_out[i]:
+                angle.append(-np.pi/4) #rightdown
+            if x_out[i+1]>x_out[i] and y_out[i+1]>y_out[i]:
+                angle.append(np.pi*2/3) #leftup
+            if x_out[i+1]<x_out[i] and y_out[i+1]>y_out[i]:
+                angle.append(-np.pi*2/3) #rightdown
+        return angle
+
     def create_obstacle_map(self, x_obstacle, y_obstacle):
         self.x_min = round(min(x_obstacle))
         self.y_min = round(min(y_obstacle))
@@ -246,6 +276,7 @@ def main():
     # Set Initial parameters
     start=[20, 175]
     end = [166, 18]
+    robot_radius=3
     rrt = RRT(
         # start=[0, 0],
         start=start,
@@ -254,7 +285,16 @@ def main():
         x_obstacle=x_obstacle,
         y_obstacle=y_obstacle)
     # pdb.set_trace()
-    path = rrt.planning(animation=show_animation)
+    path, angles = rrt.planning(animation=show_animation)
+    print(len(path),len(angles))
+    path_x = [x for (x, y) in path]
+    path_y = [y for (x, y) in path]
+    import csv
+    with open('file1.csv','w+') as csvfile:
+        filewriter= csv.writer(csvfile)
+        filewriter.writerows(path)
+    # angle = rrt.calc_angle(path_x,path_y)
+    fig=plt.figure()
     plt.plot(x_obstacle, y_obstacle, ".k")
     plt.plot(start[0], start[1], "og")
     plt.plot(end[0], end[1], "xb")
@@ -262,8 +302,41 @@ def main():
     plt.axis("equal")
     print("path", path)
     path = path[1:]
-    plt.plot([x for (x, y) in path], [y for (x, y) in path], '-r')
-    plt.show()
+    # plt.plot([x for (x, y) in path], [y for (x, y) in path], '-r')
+    # plt.show()
+
+    patch = patches.Rectangle((start[0], start[1]), robot_radius, 7, 0, fc='m')
+    path_x.reverse()
+    path_y.reverse()
+    # angle.reverse()
+    angles.reverse()
+    def init():
+        # graph, = plt.plot([], [], 'og')
+
+        plt.gca().add_patch(patch)
+        return patch
+
+    def cal_center_robot(x_out, y_out, angle):
+        if angle == -np.pi/2 or angle == np.pi or angle == -np.pi*2/3 or angle == -np.pi/4:
+            return x_out + robot_radius / 2, y_out + robot_radius /2
+        if angle == np.pi/2 or angle == 0 or angle == np.pi*2/3 or angle == np.pi/4:
+            return x_out - robot_radius / 2, y_out - robot_radius /2
+
+    def animate(i):
+        # graph.set_data(x_out_path[i], y_out_path[i])
+        #patch.set_xy([x_out_path[i]+2, y_out_path[i]+2])
+        x,y =cal_center_robot(path_x[i],path_y[i],angles[i])
+        patch.set_xy([x,y])
+        # patch.angle = np.rad2deg(angle[i])
+        patch.angle = angles[i]
+        # plt.plot(x_out_path[i], y_out_path[i], "*", color='yellow')
+        plt.plot(path_x[i], path_y[i], "o", color='red')
+        return patch
+
+    # ani = FuncAnimation(fig, animate,  init_func=init, frames=250, interval=40)
+    # plt.plot(visited_point_x, visited_point_y, ".y")
+    # plt.show()
+
     # if path is None:
     #     print("Cannot find path")
     # else:
@@ -272,12 +345,12 @@ def main():
     #     plt.show()
 
         # Draw final path
-        # if show_animation:
-        #     rrt.draw_graph()
-        #     plt.plot([x for (x, y) in path], [y for (x, y) in path], '-r')
-        #     plt.grid(True)
-        #     plt.pause(0.01)  # Need for Mac
-        #     plt.show()
+    if show_animation:
+    #     rrt.draw_graph()
+        plt.plot([x for (x, y) in path], [y for (x, y) in path], '-r')
+        plt.grid(True)
+        plt.pause(0.01)  # Need for Mac
+        plt.show()
 
 
 if __name__ == '__main__':

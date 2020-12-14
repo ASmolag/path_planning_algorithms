@@ -178,9 +178,9 @@ class AStarPath:
 def main():
     from matplotlib.animation import FuncAnimation
     start_x = 20#15
-    start_y = 180#10
-    end_x = 170 #55
-    end_y = 17#175
+    start_y = 175#10
+    end_x = 166 #55
+    end_y = 18#175
     grid_size = 2.0
     robot_radius = 3.0
    # pdb.set_trace()
@@ -211,6 +211,12 @@ def main():
     # pdb.set_trace()
     a_star = AStarPath(robot_radius, grid_size, x_obstacle, y_obstacle)
     x_out_path, y_out_path, visited_points_x, visited_points_y, angle = a_star.a_star_search(start_x, start_y, end_x, end_y)
+    import csv
+    path=list(zip(x_out_path,y_out_path))
+    with open('astar_maze2.csv','w+') as csvfile:
+        filewriter= csv.writer(csvfile)
+        filewriter.writerows(path)
+
     # print(record_closed)
     #pdb.set_trace()
     # visited_points_x = [v.x for v in record_closed.values()]
