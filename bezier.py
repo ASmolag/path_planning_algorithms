@@ -6,6 +6,7 @@ from matplotlib.animation import FuncAnimation
 import pdb
 import cv2
 import csv
+import scipy.special
 # find the a & b points
 def constraint_bezier_coef(points):
     list_angles = calc_list_of_angles(points)
@@ -20,10 +21,33 @@ def constraint_bezier_coef(points):
     return np.array(A),np.array(B)
 
 # returns the general Bezier cubic formula given 4 control points
-def get_cubic(a, b, c, d):
+def get_cubic(a, b, c=0, d=0):
     return lambda t: np.power(1 - t, 3) * a + 3 * np.power(1 - t, 2) * t * b + 3 * (1 - t) * np.power(t, 2) * c + np.power(t, 3) * d
 
 # return one cubic curve for each consecutive points
+# def get_bezier_cubic(points):
+#     A,B = constraint_bezier_coef(points)
+#     cubic_points = []
+#     curve = []
+#     radius =[]
+#     centers =[]
+#     dt_points =[]
+#     ddt_points =[]
+#     for i in range(len(points) - 1):
+#         cubic_points.append(get_cubic(points[i], A[i], B[i], points[i + 1]))
+#         derivatives_cp = bezier_derivatives_control_points([points[i], A[i], B[i], points[i + 1]],2)
+#         # pdb.set_trace()
+#         dt_points.append(get_cubic(*derivatives_cp[1]))
+#         ddt_points.append(get_cubic(*derivatives_cp[2]))
+#         # c = curvature(dt[0],dt[1],ddt[0],ddt[1])
+#         # r = 1/c
+#         # c, r, ctr = get_curvature([points[i], A[i], B[i], points[i + 1]])
+#         # curve.append(c)
+#         # radius.append(r)
+#         # centers.append(ctr)
+
+#     return cubic_points, dt_points, ddt_points
+
 def get_bezier_cubic(points):
     A,B = constraint_bezier_coef(points)
     return [
@@ -33,8 +57,21 @@ def get_bezier_cubic(points):
 
 # evalute each cubic curve on the range [0, 1] sliced in n points
 def evaluate_bezier(points, n):
+    # lsp = np.linspace(0, 1, n)
+    # curves, dt_points, ddt_points = get_bezier_cubic(points)
     curves = get_bezier_cubic(points)
     return np.array([fun(t) for fun in curves for t in np.linspace(0, 1, n)])
+
+def bezier_derivatives_control_points(control_points, n_derivatives):
+    w = {0: control_points}
+    for i in range(n_derivatives):
+        n = len(w[i])
+        w[i + 1] = np.array([(n - 1) * (w[i][j + 1] - w[i][j])
+                             for j in range(n - 1)])
+    return w
+
+def curvature(dx, dy, ddx, ddy):
+    return (dx * ddy - dy * ddx) / (dx ** 2 + dy ** 2) ** (3 / 2)
 
 
 #check collision if line beetween a and b
@@ -59,10 +96,11 @@ def isBetween(a, b, c, epsilon = 20):
 def remove_points(path,obstacles,epsilon=20,points_between=5):
     # print(path[0])
     new_path = [path[0]]
+    list_of_path = path.tolist()
     for i in range(1,len(path)):
         for obstacle in obstacles:
             # pdb.set_trace()
-            itemindex = path.tolist().index([new_path[-1][0],new_path[-1][1]])
+            itemindex = list_of_path.index([new_path[-1][0],new_path[-1][1]])
             # print(np.where(path == new_path[-1]))
             # print(i)
             # print(itemindex[0][0])
@@ -143,7 +181,13 @@ if __name__ == "__main__":
 
 
     points=new_path
-    path = evaluate_bezier(points, 20)
+    path= evaluate_bezier(points, 20)
+    # curve = curvature(dtp[0][0],dtp[0][1], ddtp[0][0], ddtp[0][1])
+    # radius = 1/curve
+    # curvature_center = point + np.array([- dt[1], dt[0]]) * radius
+
+    # radius=np.rad2deg(radius)
+
     angles = calc_list_of_angles(path)
     # print(angles)
     # print("angles", angles)
@@ -154,6 +198,8 @@ if __name__ == "__main__":
     # print(px,py)
     # print("len path", len(px))
 
+    circle = plt.Circle(tuple(center[0]), radius[0],
+                        color=(0, 0.8, 0.8), fill=False, linewidth=1)
 
     plt.figure()
     plt.plot(x_obstacle, y_obstacle, ".k")
@@ -161,6 +207,9 @@ if __name__ == "__main__":
     plt.plot(x1, y1, 'ro')
     plt.plot(x,y, 'cx')
     plt.plot(x_p,y_p, 'y-')
+    ax = plt.gca()
+    ax.add_artist(circle)
+    
 
 
     # from scipy import interpolate

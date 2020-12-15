@@ -259,7 +259,7 @@ class RRT:
 def main():
     print("start " + __file__)
 
-    image = cv2.imread('maze2.jpg')
+    image = cv2.imread('maze3.jpg')
     image = cv2.resize(image, (200,200))
     # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -276,8 +276,10 @@ def main():
     # obstacleList = [(5, 5, 1), (3, 6, 2), (3, 8, 2), (3, 10, 2), (7, 5, 2),
     #                 (9, 5, 2), (8, 10, 1)]  # [x, y, radius]
     # Set Initial parameters
-    start=[20, 175]
-    end = [166, 18]
+    # start=[20, 175]
+    # end = [166, 18]
+    start=[20, 180]
+    end = [172, 18]
     robot_radius=3
     rrt = RRT(
         # start=[0, 0],
@@ -293,72 +295,99 @@ def main():
     path_y = [y for (x, y) in path]
     visited_x = [x for (x, y) in visited_nodes]
     visited_y = [y for (x, y) in visited_nodes]
-    print("vistedx", visited_x)
+    print("len", len(visited_x))
     import csv
-    # with open('file1.csv','w+') as csvfile:
-    #     filewriter= csv.writer(csvfile)
-    #     filewriter.writerows(path)
-    # angle = rrt.calc_angle(path_x,path_y)
-    fig=plt.figure()
-    plt.plot(visited_x, visited_y, '.g')
-    plt.plot(x_obstacle, y_obstacle, ".k")
-    plt.plot(start[0], start[1], "og")
-    plt.plot(end[0], end[1], "xb")
+
+    
+    path = path[1:]
+    path=list(zip(path_x,path_y))
+    visited_nodes=list(zip(visited_x,visited_y))
+    with open('rrt3path.csv','w+') as csvfile:
+        filewriter= csv.writer(csvfile)
+        filewriter.writerows(path)
+
+    with open('rrt3node.csv','w+') as csvfile:
+        filewriter= csv.writer(csvfile)
+        filewriter.writerows(visited_nodes)
+
+    fig = plt.figure(figsize=(12,12))
+    # sample, = plt.plot(samplex, sampley, ".b")
+    visited, = plt.plot(visited_x, visited_y, ".y")
+    obstacle, = plt.plot(x_obstacle, y_obstacle, ".k")
+    start, = plt.plot(start[0], start[1], "og")
+    end, =plt.plot(end[0], end[1], "xb")
+    path, = plt.plot(path_x,path_y,"-r")
     plt.grid(True)
     plt.axis("equal")
-    # print("path", path)
-    path = path[1:]
-    # plt.plot([x for (x, y) in path], [y for (x, y) in path], '-r')
-    # plt.show()
+    plt.title("Ścieżka wygenerowana dla algorytmu RRT.")
+    plt.legend([start,end,path,visited],['pozycja startowa','pozycja docelowa','wygenerowana ścieżka','przeszukane punkty'],loc='upper right')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.savefig('RRT_maze3.jpg')
+    plt.show()
+    # angle = rrt.calc_angle(path_x,path_y)
+    # fig=plt.figure()
+    # plt.plot(visited_x, visited_y, '.g')
+    # plt.plot(x_obstacle, y_obstacle, ".k")
+    # plt.plot(start[0], start[1], "og")
+    # plt.plot(end[0], end[1], "xb")
+    # plt.grid(True)
+    # plt.axis("equal")
 
-    patch = patches.Rectangle((start[0], start[1]), robot_radius, 7, 0, fc='m')
-    path_x.reverse()
-    path_y.reverse()
-    # angle.reverse()
-    angles.reverse()
-    def init():
-        # graph, = plt.plot([], [], 'og')
 
-        plt.gca().add_patch(patch)
-        return patch
+    # # print("path", path)
+    # path = path[1:]
+    # # plt.plot([x for (x, y) in path], [y for (x, y) in path], '-r')
+    # # plt.show()
 
-    def cal_center_robot(x_out, y_out, angle):
-        if angle == -np.pi/2 or angle == np.pi or angle == -np.pi*2/3 or angle == -np.pi/4:
-            return x_out + robot_radius / 2, y_out + robot_radius /2
-        if angle == np.pi/2 or angle == 0 or angle == np.pi*2/3 or angle == np.pi/4:
-            return x_out - robot_radius / 2, y_out - robot_radius /2
+    # patch = patches.Rectangle((start[0], start[1]), robot_radius, 7, 0, fc='m')
+    # path_x.reverse()
+    # path_y.reverse()
+    # # angle.reverse()
+    # angles.reverse()
+    # def init():
+    #     # graph, = plt.plot([], [], 'og')
 
-    def animate(i):
-        # graph.set_data(x_out_path[i], y_out_path[i])
-        #patch.set_xy([x_out_path[i]+2, y_out_path[i]+2])
-        x,y =cal_center_robot(path_x[i],path_y[i],angles[i])
-        patch.set_xy([x,y])
-        # patch.angle = np.rad2deg(angle[i])
-        patch.angle = angles[i]
-        # plt.plot(x_out_path[i], y_out_path[i], "*", color='yellow')
-        plt.plot(path_x[i], path_y[i], "o", color='red')
-        return patch
+    #     plt.gca().add_patch(patch)
+    #     return patch
 
-    # ani = FuncAnimation(fig, animate,  init_func=init, frames=250, interval=40)
-    # plt.plot(visited_point_x, visited_point_y, ".y")
-    # plt.show()
+    # def cal_center_robot(x_out, y_out, angle):
+    #     if angle == -np.pi/2 or angle == np.pi or angle == -np.pi*2/3 or angle == -np.pi/4:
+    #         return x_out + robot_radius / 2, y_out + robot_radius /2
+    #     if angle == np.pi/2 or angle == 0 or angle == np.pi*2/3 or angle == np.pi/4:
+    #         return x_out - robot_radius / 2, y_out - robot_radius /2
 
-    # if path is None:
-    #     print("Cannot find path")
-    # else:
-    #     print("found path!!")
-    #     plt.plot(x_obstacle, y_obstacle, ".k")
-    #     plt.show()
+    # def animate(i):
+    #     # graph.set_data(x_out_path[i], y_out_path[i])
+    #     #patch.set_xy([x_out_path[i]+2, y_out_path[i]+2])
+    #     x,y =cal_center_robot(path_x[i],path_y[i],angles[i])
+    #     patch.set_xy([x,y])
+    #     # patch.angle = np.rad2deg(angle[i])
+    #     patch.angle = angles[i]
+    #     # plt.plot(x_out_path[i], y_out_path[i], "*", color='yellow')
+    #     plt.plot(path_x[i], path_y[i], "o", color='red')
+    #     return patch
 
-        # Draw final path
-    if show_animation:
-    #     rrt.draw_graph()
-        plt.plot([x for (x, y) in path], [y for (x, y) in path], '-r')
+    # # ani = FuncAnimation(fig, animate,  init_func=init, frames=250, interval=40)
+    # # plt.plot(visited_point_x, visited_point_y, ".y")
+    # # plt.show()
+
+    # # if path is None:
+    # #     print("Cannot find path")
+    # # else:
+    # #     print("found path!!")
+    # #     plt.plot(x_obstacle, y_obstacle, ".k")
+    # #     plt.show()
+
+    #     # Draw final path
+    # if show_animation:
+    # #     rrt.draw_graph()
+    #     plt.plot([x for (x, y) in path], [y for (x, y) in path], '-r')
         
 
-        plt.grid(True)
-        plt.pause(0.01)  # Need for Mac
-        plt.show()
+    #     plt.grid(True)
+    #     plt.pause(0.01)  # Need for Mac
+    #     plt.show()
 
 
 if __name__ == '__main__':

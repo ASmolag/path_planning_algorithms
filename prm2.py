@@ -124,6 +124,7 @@ class PRM:
 
         rx, ry, visited_point_x, visited_point_y = self.dijkstra_planning(road_map, sample_x, sample_y)
         angle =self.calc_angle(rx, ry)
+        # return (rx, ry, visited_point_x, visited_point_y,angle,sample_x,sample_y)
         return (rx, ry, visited_point_x, visited_point_y,angle)
 
 

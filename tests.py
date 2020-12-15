@@ -6,7 +6,10 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.animation import FuncAnimation
 import math
+from scipy import interpolate
 from bezier import *
+from prm2 import PRM
+from rrt2 import RRT
 
 from a_star2 import AStarPath
 
@@ -44,8 +47,10 @@ def read_obstacles_from_map(filename):
 
     return x_obstacle, y_obstacle
 
+# def plot_function(nazwa,x_obstacle,y_obstacle,start_x,start_y,end_x,end_y,x_path,y_path, visited_x, visited_y,samplex,sampley):
 def plot_function(nazwa,x_obstacle,y_obstacle,start_x,start_y,end_x,end_y,x_path,y_path, visited_x, visited_y):
     fig = plt.figure(figsize=(12,12))
+    # sample, = plt.plot(samplex, sampley, ".b")
     visited, = plt.plot(visited_x, visited_y, ".y")
     obstacle, = plt.plot(x_obstacle, y_obstacle, ".k")
     start, = plt.plot(start_x, start_y, "og")
@@ -57,7 +62,7 @@ def plot_function(nazwa,x_obstacle,y_obstacle,start_x,start_y,end_x,end_y,x_path
     plt.legend([start,end,path,visited],['pozycja startowa','pozycja docelowa','wygenerowana ścieżka','przeszukane punkty'],loc='upper right')
     plt.xlabel('x')
     plt.ylabel('y')
-    plt.savefig(f'{nazwa}_maze3.jpg')
+    plt.savefig(f'{nazwa}_maze2.jpg')
     plt.show()
     
 def plot_function_smooth(nazwa,nazwa2,x_obstacle,y_obstacle,path_smooth,points_smooth, original_path):
@@ -77,7 +82,7 @@ def plot_function_smooth(nazwa,nazwa2,x_obstacle,y_obstacle,path_smooth,points_s
     plt.legend([orginal_path,bezier_path,bezier_points,orginal_points],['ścieżka początkowa','ścieżka wygładzona','pozostałe punkty','początkowe punkty'],loc='upper right')
     plt.xlabel('x')
     plt.ylabel('y')
-    plt.savefig(f'{nazwa}_{nazwa2}_maze3.jpg')
+    plt.savefig(f'{nazwa}_{nazwa2}_maze2.jpg')
     plt.show()
 
 def animate_path(nazwa,start_x,start_y,end_x,end_y,x_obstacle,y_obstacle, x_out_path, y_out_path, angles, robot_radius):
@@ -111,6 +116,8 @@ def animate_path(nazwa,start_x,start_y,end_x,end_y,x_obstacle,y_obstacle, x_out_
         return patch
 
     ani = FuncAnimation(fig, animate, init_func=init, frames=len(x_out_path), interval=50)
+    mng = plt.get_current_fig_manager()
+    mng.window.showMaximized()
     plt.show()
 
 def prepare_for_bezier(x,y,x_obstacle,y_obstacle,epsilon,distance):
@@ -125,56 +132,130 @@ def prepare_for_bezier(x,y,x_obstacle,y_obstacle,epsilon,distance):
     return new_path, path
 
 def main():
-    maze_filename = "maze3.jpg"
+    maze_filename = "maze2.jpg"
     show_animation = True
     timing_num = 1
     elapsed_times = []
     elapsed_times_rrt = []
     elapsed_times_prm = []
-
+    # maze 2
     start_x = 20  # 15
-    start_y = 180  # 10
-    end_x = 170  # 55
-    end_y = 17  # 175
+    start_y = 175#180  # 10
+    end_x = 166#170  # 55
+    end_y = 18#17  # 175
+    #maze6
+    # start_x = 20  # 15
+    # start_y = 175#180  # 10
+    # end_x = 50#170  # 55
+    # end_y = 20#17  # 175
+    # start_x = 20  # 15
+    # start_y = 180#180  # 10
+    # end_x = 170  # 55
+    # end_y = 17  # 175
     grid_size = 2.0
     robot_radius = 4.0
 
     x_obstacle, y_obstacle = read_obstacles_from_map(maze_filename)
 
-    for i in range(timing_num):
-        start = time.perf_counter()
-        a_star = AStarPath(robot_radius, grid_size, x_obstacle, y_obstacle)
-        (
-            x_out_path,
-            y_out_path,
-            visited_points_x,
-            visited_points_y,
-            angle,
-        ) = a_star.a_star_search(start_x, start_y, end_x, end_y)
-        elapsed_time = time.perf_counter() - start
-        print(f"Elapsed time: {elapsed_time:0.4f} seconds")
-        elapsed_times.append(elapsed_time)
+    # for i in range(timing_num):
+    #     start = time.perf_counter()
+    #     a_star = AStarPath(robot_radius, grid_size, x_obstacle, y_obstacle)
+    #     (
+    #         x_out_path,
+    #         y_out_path,
+    #         visited_points_x,
+    #         visited_points_y,
+    #         angle,
+    #     ) = a_star.a_star_search(start_x, start_y, end_x, end_y)
+    #     elapsed_time = time.perf_counter() - start
+    #     print(f"Elapsed time: {elapsed_time:0.4f} seconds")
+    #     elapsed_times.append(elapsed_time)
 
+    # for i in range(timing_num):
+    #     start = time.perf_counter()
+    #     prm = PRM([start_x,start_y],[end_x,end_y],x_obstacle,y_obstacle,robot_radius,grid_size)
+    #     (
+    #         x_out_path,
+    #         y_out_path,
+    #         visited_points_x,
+    #         visited_points_y,
+    #         angle
+    #     ) = prm.prm_planning()
+    #     elapsed_time = time.perf_counter() - start
+    #     print(f"Elapsed time: {elapsed_time:0.4f} seconds")
+    #     elapsed_times.append(elapsed_time)
+
+    # for i in range(timing_num):
+    #     start = time.perf_counter()
+    #     rrt = RRT(start=[start_x,start_y],goal=[end_x,end_y],x_obstacle=x_obstacle,y_obstacle=y_obstacle)
+    #     (
+    #         path,
+    #         angle,
+    #         visited_nodes
+
+    #     ) = rrt.planning(animation=show_animation)
+    #     elapsed_time = time.perf_counter() - start
+    #     print(f"Elapsed time: {elapsed_time:0.4f} seconds")
+    #     elapsed_times.append(elapsed_time)
+    
+    with open('rrt2path.csv') as inf:
+        x = []
+        y = []
+        for line in csv.reader(inf):
+            tx, ty = line
+            x.append(int(float(tx)))
+            y.append(int(float(ty)))
+
+    path = np.array([x,y])
+    path = np.transpose(path)
+
+    # print("path",path)
+    with open('rrt2node.csv') as inf:
+        x = []
+        y = []
+        for line in csv.reader(inf):
+            tx, ty = line
+            x.append(int(float(tx)))
+            y.append(int(float(ty)))
+
+    visited_nodes = np.array([x,y])
+    visited_nodes = np.transpose(visited_nodes)
+    # print("node",visited_nodes)
+    x_out_path=[x for (x, y) in path]
+    y_out_path=[y for (x, y) in path]
+    visited_points_x=[x for (x, y) in visited_nodes]
+    visited_points_y=[y for (x, y) in visited_nodes]
+    
+    print(len(visited_points_x))
+    # print(len(sample_x))
     average_time = sum(elapsed_times) / timing_num  # len(elapsed_times)
     print("average_time", average_time)
-
+    print('how many visited points: ', len(visited_points_x))
     x_out_path.reverse()
     y_out_path.reverse()
-    angle.reverse()
+    # angle.reverse()
     angles=calc_list_of_angles(list(zip(x_out_path,y_out_path)))
-    plot_function('A*',x_obstacle,y_obstacle,start_x,start_y,end_x,end_y,x_out_path,y_out_path, visited_points_x, visited_points_y)
-    animate_path('A*',start_x,start_y,end_x,end_y,x_obstacle,y_obstacle, x_out_path, y_out_path, angles, robot_radius)
+    # plot_function('PRM',x_obstacle,y_obstacle,start_x,start_y,end_x,end_y,x_out_path,y_out_path, visited_points_x, visited_points_y,sample_x,sample_y)
+    plot_function('RRT',x_obstacle,y_obstacle,start_x,start_y,end_x,end_y,x_out_path,y_out_path, visited_points_x, visited_points_y)
+    animate_path('RRT',start_x,start_y,end_x,end_y,x_obstacle,y_obstacle, x_out_path, y_out_path, angles, robot_radius)
 
     #bezier
-    new_path, path = prepare_for_bezier(x_out_path,y_out_path,x_obstacle,y_obstacle,10,6)
+    new_path, path = prepare_for_bezier(x_out_path,y_out_path,x_obstacle,y_obstacle,20,4)
     bezier_path=evaluate_bezier(new_path,20)
     bezier_angles = calc_list_of_angles(bezier_path)
-    plot_function_smooth('A*','bezier',x_obstacle,y_obstacle,bezier_path,new_path,path)
-    animate_path('A*',start_x,start_y,end_x,end_y,x_obstacle,y_obstacle,bezier_path[:,0], bezier_path[:,1],bezier_angles,robot_radius)
+    plot_function_smooth('RRT','bezier',x_obstacle,y_obstacle,bezier_path,new_path,path)
+    animate_path('RRT',start_x,start_y,end_x,end_y,x_obstacle,y_obstacle,bezier_path[:,0], bezier_path[:,1],bezier_angles,robot_radius)
     
-    # x_to_interpolate, y_to_interpolate = zip(*new_path)
-    # f,u = interpolate.splprep([x_to_interpolate,y_to_interpolate],s=0)
-    # x_int , y _int = interpolate.splev(np.linspace(0,1,500),f)
+    #interpolate
+    x_to_interpolate, y_to_interpolate = zip(*new_path)
+    f,u = interpolate.splprep([x_to_interpolate,y_to_interpolate],s=0)
+    x_int, y_int = interpolate.splev(np.linspace(0,1,500),f)
+    path_interpolate = np.array([x_int,y_int])
+    path_interpolate = np.transpose(path_interpolate)
+    interpolate_angles = calc_list_of_angles(path_interpolate)
+    plot_function_smooth('RRT','interpolacja',x_obstacle,y_obstacle,path_interpolate,new_path,path)
+    animate_path('RRT',start_x,start_y,end_x,end_y,x_obstacle,y_obstacle,x_int, y_int,interpolate_angles,robot_radius)
+
 
 if __name__ == "__main__":
     main()
