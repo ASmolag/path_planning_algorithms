@@ -13,9 +13,6 @@ def constraint_bezier_coef(points):
     B = []
     for i in range (len(list_angles)-1):
         d = np.hypot(points[i][0]-points[i+1][0],points[i][1]-points[i+1][1])/3.0
-        # f= 0.2 * math.tan(abs(list_angles[i]-list_angles[i+1])/2)
-        # A.append([points[i][0],f])
-        # B.append([f,points[i+1][1]])
         a=[points[i][0] + d * np.cos(list_angles[i]), points[i][1] + d * np.sin(list_angles[i])]
         b=[points[i+1][0] - d * np.cos(list_angles[i+1]), points[i+1][1] - d * np.sin(list_angles[i+1])]
         A.append(a)
@@ -28,9 +25,7 @@ def get_cubic(a, b, c, d):
 
 # return one cubic curve for each consecutive points
 def get_bezier_cubic(points):
-    # A, B= get_bezier_coef(points)
     A,B = constraint_bezier_coef(points)
-    # pdb.set_trace()
     return [
         get_cubic(points[i], A[i], B[i], points[i + 1])
         for i in range(len(points) - 1)
@@ -41,28 +36,13 @@ def evaluate_bezier(points, n):
     curves = get_bezier_cubic(points)
     return np.array([fun(t) for fun in curves for t in np.linspace(0, 1, n)])
 
-#read data from file with path from algorithms
-with open('prm_maze2.csv') as inf:
-    x = []
-    y = []
-    for line in csv.reader(inf):
-        tx, ty = line
-        x.append(int(float(tx)))
-        y.append(int(float(ty)))
-
-path = np.array([x,y])
-path = np.transpose(path)
-# for xi,yi in zip(x,y):
-#     path.append([x y])
-# print(path)
-
 
 #check collision if line beetween a and b
-def isBetween(a, b, c):
+def isBetween(a, b, c, epsilon = 20):
     crossproduct = (c[1] - a[1]) * (b[0] - a[0]) - (c[0] - a[0]) * (b[1] - a[1])
 
     #distance
-    if abs(crossproduct) > 20:
+    if abs(crossproduct) > epsilon:
         return False
 
     dotproduct = (c[0] - a[0]) * (b[0] - a[0]) + (c[1] - a[1])*(b[1] - a[1])
@@ -76,16 +56,17 @@ def isBetween(a, b, c):
     return True
 
 #remove points from orginal path
-def remove_points(path,obstacles):
+def remove_points(path,obstacles,epsilon=20,points_between=5):
     # print(path[0])
     new_path = [path[0]]
     for i in range(1,len(path)):
         for obstacle in obstacles:
-            itemindex = np.where(path==new_path[-1])
+            # pdb.set_trace()
+            itemindex = path.tolist().index([new_path[-1][0],new_path[-1][1]])
             # print(np.where(path == new_path[-1]))
             # print(i)
             # print(itemindex[0][0])
-            if isBetween(path[i],new_path[-1],obstacle) or abs(itemindex[0][0] - i) > 5:
+            if isBetween(path[i],new_path[-1],obstacle,epsilon) or abs(itemindex - i) > points_between:
                 new_path.append(path[i-1])
     new_path.append(path[-1])
     return new_path
@@ -105,154 +86,166 @@ def calc_list_of_angles(path):
         list_of_angles.append(theta)
     return list_of_angles
 
+if __name__ == "__main__":
+        
+    #read data from file with path from algorithms
+    with open('prm_maze2.csv') as inf:
+        x = []
+        y = []
+        for line in csv.reader(inf):
+            tx, ty = line
+            x.append(int(float(tx)))
+            y.append(int(float(ty)))
+
+    path = np.array([x,y])
+    path = np.transpose(path)
 
 
+    image = cv2.imread('maze2.jpg')
+    image = cv2.resize(image, (200,200))
+    # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    (width, length) = gray.shape
+    x_obstacle, y_obstacle = [], []
 
-image = cv2.imread('maze2.jpg')
-image = cv2.resize(image, (200,200))
-# gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-(width, length) = gray.shape
-x_obstacle, y_obstacle = [], []
+    for i in range(width):
+        for j in range(length):
+            if gray[i][j] <= 150:
+                y_obstacle.append(i)
+                x_obstacle.append(j)
 
-for i in range(width):
-    for j in range(length):
-        if gray[i][j] <= 150:
-            y_obstacle.append(i)
-            x_obstacle.append(j)
+    obstacles = list(zip(x_obstacle,y_obstacle))
 
-obstacles = list(zip(x_obstacle,y_obstacle))
-
-new_path = remove_points(path, obstacles)
-new_path = np.array(new_path)
-# print(new_path)
-# new_path = np.unique(new_path, axis=0)
-indexes = np.unique(new_path, axis=0, return_index=True)[1]
-# print(indexes)
-new_path = np.array([new_path[index] for index in sorted(indexes)])
-# print(new_path)
-# new_path = np.array(new_path)
-# print(new_path)
-new_path = np.flip(new_path, axis=0)
-# print(new_path)
-
-
-# print('-----')
-# print(new_path)
-# print(new_path[0])
-# print(path[0])
-# print(x[0],y[0])
-# print('-----')
-x_p = [x for x,y in path]
-y_p = [y for x,y in path]
-x_n = [x for x,y in new_path]
-y_n = [y for x,y in new_path]
+    new_path = remove_points(path, obstacles)
+    new_path = np.array(new_path)
+    # print(new_path)
+    # new_path = np.unique(new_path, axis=0)
+    indexes = np.unique(new_path, axis=0, return_index=True)[1]
+    # print(indexes)
+    new_path = np.array([new_path[index] for index in sorted(indexes)])
+    # print(new_path)
+    # new_path = np.array(new_path)
+    # print(new_path)
+    new_path = np.flip(new_path, axis=0)
+    # print(new_path)
 
 
-points=new_path
-path = evaluate_bezier(points, 20)
-angles = calc_list_of_angles(path)
-# print(angles)
-# print("angles", angles)
-# print("len", len(angles))
-# extract x & y coordinates of points
-x1, y1 = points[:,0], points[:,1]
-px, py = path[:,0], path[:,1]
-# print(px,py)
-# print("len path", len(px))
+    # print('-----')
+    # print(new_path)
+    # print(new_path[0])
+    # print(path[0])
+    # print(x[0],y[0])
+    # print('-----')
+    x_p = [x for x,y in path]
+    y_p = [y for x,y in path]
+    x_n = [x for x,y in new_path]
+    y_n = [y for x,y in new_path]
 
 
-plt.figure()
-plt.plot(x_obstacle, y_obstacle, ".k")
-plt.plot(px, py, 'b-')
-plt.plot(x1, y1, 'ro')
-plt.plot(x,y, 'cx')
-plt.plot(x_p,y_p, 'y-')
+    points=new_path
+    path = evaluate_bezier(points, 20)
+    angles = calc_list_of_angles(path)
+    # print(angles)
+    # print("angles", angles)
+    # print("len", len(angles))
+    # extract x & y coordinates of points
+    x1, y1 = points[:,0], points[:,1]
+    px, py = path[:,0], path[:,1]
+    # print(px,py)
+    # print("len path", len(px))
 
 
-# from scipy import interpolate
-# arr=new_path
-# x2, y2 = zip(*arr)
-# #in this specific instance, append an endpoint to the starting point to create a closed shape
-# x2 = np.r_[x2, x2[0]]
-# y2 = np.r_[y2, y2[0]]
-# #create spline function
-# f, u = interpolate.splprep([x2, y2], s=0, per=True)
-# #create interpolated lists of points
-# xint, yint = interpolate.splev(np.linspace(0, 1, 500), f)
-# angles = calc_list_of_angles(list(zip(xint, yint)))
+    plt.figure()
+    plt.plot(x_obstacle, y_obstacle, ".k")
+    plt.plot(px, py, 'b-')
+    plt.plot(x1, y1, 'ro')
+    plt.plot(x,y, 'cx')
+    plt.plot(x_p,y_p, 'y-')
 
-patch = patches.Rectangle((x1[0], y1[0]), 5, 2, 0, fc='m')
 
-def init():
-    # graph, = plt.plot([], [], 'og')
+    # from scipy import interpolate
+    # arr=new_path
+    # x2, y2 = zip(*arr)
+    # #in this specific instance, append an endpoint to the starting point to create a closed shape
+    # x2 = np.r_[x2, x2[0]]
+    # y2 = np.r_[y2, y2[0]]
+    # #create spline function
+    # f, u = interpolate.splprep([x2, y2], s=0, per=True)
+    # #create interpolated lists of points
+    # xint, yint = interpolate.splev(np.linspace(0, 1, 500), f)
+    # angles = calc_list_of_angles(list(zip(xint, yint)))
 
-    plt.gca().add_patch(patch)
-    return patch
+    patch = patches.Rectangle((x1[0], y1[0]), 5, 2, 0, fc='m')
 
-def cal_center_robot(x_out, y_out, angle):
-    if angle > 0:
-        return x_out + 2 / 2, y_out + 2 /2
-    if angle <= 0 :
-        return x_out - 2 / 2, y_out - 2 /2
+    def init():
+        # graph, = plt.plot([], [], 'og')
 
-def animate(i):
-    x_robot,y_robot =cal_center_robot(px[i],py[i],angles[i])
-    # x_robot,y_robot =cal_center_robot(xint[i],yint[i],angles[i])
-    patch.set_xy([x_robot,y_robot])
-    # print(angles[i])
-    patch.angle = np.rad2deg(angles[i])
-    # plt.plot(x_out_path[i], y_out_path[i], "*", color='yellow')
-    plt.plot(px[i], py[i], "o", color='red')
-    # plt.plot(xint[i], yint[i], "o", color='red')
-    return patch
+        plt.gca().add_patch(patch)
+        return patch
 
-fig = plt.figure()
-plt.plot(x_obstacle, y_obstacle, ".k")
-ani = FuncAnimation(fig, animate,  init_func=init, frames=len(px), interval=220)
-plt.show()
+    def cal_center_robot(x_out, y_out, angle):
+        if angle > 0:
+            return x_out + 2 / 2, y_out + 2 /2
+        if angle <= 0 :
+            return x_out - 2 / 2, y_out - 2 /2
 
-#interoplacja >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-from scipy import interpolate
-arr=new_path
-# arr = np.array([[0,0],[2,.5],[2.5, 1.25],[2.6,2.8],[1.3,1.1]])
-x2, y2 = zip(*arr)
-#in this specific instance, append an endpoint to the starting point to create a closed shape
-# x2 = np.r_[x2, x2[0]]
-# y2 = np.r_[y2, y2[0]]
-#create spline function
-f, u = interpolate.splprep([x2, y2], s=0)
-#create interpolated lists of points
-xint, yint = interpolate.splev(np.linspace(0, 1, 500), f)
-plt.figure()
-plt.scatter(x2, y2)
-plt.plot(xint, yint)
-plt.plot(x_obstacle, y_obstacle, ".k")
-# plt.show()
+    def animate(i):
+        x_robot,y_robot =cal_center_robot(px[i],py[i],angles[i])
+        # x_robot,y_robot =cal_center_robot(xint[i],yint[i],angles[i])
+        patch.set_xy([x_robot,y_robot])
+        # print(angles[i])
+        patch.angle = np.rad2deg(angles[i])
+        # plt.plot(x_out_path[i], y_out_path[i], "*", color='yellow')
+        plt.plot(px[i], py[i], "o", color='red')
+        # plt.plot(xint[i], yint[i], "o", color='red')
+        return patch
 
-# bezier >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# plot
-# plt.figure()
-# plt.plot(x_obstacle, y_obstacle, ".k")
-# plt.plot(px, py, 'b-')
-# plt.plot(x1, y1, 'ro')
-# plt.plot(x,y, 'cx')
-# plt.show()
+    fig = plt.figure()
+    plt.plot(x_obstacle, y_obstacle, ".k")
+    ani = FuncAnimation(fig, animate,  init_func=init, frames=len(px), interval=220)
+    plt.show()
 
-#linie proste>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# plt.figure()
-# plt.plot(x_obstacle, y_obstacle, ".k")
-# plt.plot(x_p, y_p)
-# plt.plot(x_n, y_n)
-# # plt.show()
+    #interoplacja >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    from scipy import interpolate
+    arr=new_path
+    # arr = np.array([[0,0],[2,.5],[2.5, 1.25],[2.6,2.8],[1.3,1.1]])
+    x2, y2 = zip(*arr)
+    #in this specific instance, append an endpoint to the starting point to create a closed shape
+    # x2 = np.r_[x2, x2[0]]
+    # y2 = np.r_[y2, y2[0]]
+    #create spline function
+    f, u = interpolate.splprep([x2, y2], s=0)
+    #create interpolated lists of points
+    xint, yint = interpolate.splev(np.linspace(0, 1, 500), f)
+    plt.figure()
+    plt.scatter(x2, y2)
+    plt.plot(xint, yint)
+    plt.plot(x_obstacle, y_obstacle, ".k")
+    plt.show()
 
-# print(x_n, len(x_n))
-# print(y_n, len(y_n))
-# triangle metod >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-# ys=smoothTriangle(y_n,2)
-# xs=smoothTriangle(x_n,2)
-# plt.figure()
-# plt.plot(xs,ys)
-# plt.plot(x_obstacle, y_obstacle, ".k")
+    # bezier >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # plot
+    # plt.figure()
+    # plt.plot(x_obstacle, y_obstacle, ".k")
+    # plt.plot(px, py, 'b-')
+    # plt.plot(x1, y1, 'ro')
+    # plt.plot(x,y, 'cx')
+    # plt.show()
 
-# plt.show()
+    #linie proste>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # plt.figure()
+    # plt.plot(x_obstacle, y_obstacle, ".k")
+    # plt.plot(x_p, y_p)
+    # plt.plot(x_n, y_n)
+    # # plt.show()
+
+    # print(x_n, len(x_n))
+    # print(y_n, len(y_n))
+    # triangle metod >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    # ys=smoothTriangle(y_n,2)
+    # xs=smoothTriangle(x_n,2)
+    # plt.figure()
+    # plt.plot(xs,ys)
+    # plt.plot(x_obstacle, y_obstacle, ".k")
+
+    # plt.show()

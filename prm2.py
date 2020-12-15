@@ -307,9 +307,9 @@ def main():
     rx, ry, visited_point_x, visited_point_y,angle = prm.prm_planning()
 
     path=list(zip(rx,ry))
-    with open('prm_maze2.csv','w+') as csvfile:
-        filewriter= csv.writer(csvfile)
-        filewriter.writerows(path)
+    # with open('prm_maze2.csv','w+') as csvfile:
+    #     filewriter= csv.writer(csvfile)
+    #     filewriter.writerows(path)
     patch = patches.Rectangle((sx, sy), robot_radius, 7, 0, fc='m')
 
     rx.reverse()
@@ -338,7 +338,8 @@ def main():
         plt.plot(rx[i], ry[i], "o", color='red')
         return patch
 
-    ani = FuncAnimation(fig, animate,  init_func=init, frames=250, interval=40)
+    plt.plot(rx, ry, "-", color='red')
+    # ani = FuncAnimation(fig, animate,  init_func=init, frames=250, interval=40)
     plt.plot(visited_point_x, visited_point_y, ".y")
     plt.show()
 

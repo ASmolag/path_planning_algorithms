@@ -32,7 +32,7 @@ class RRT:
                  goal,
                  x_obstacle,
                  y_obstacle,
-                 expand_dis=3,
+                 expand_dis=4,
                  path_resolution=2,
                  goal_sample_rate=5,
                  max_iter=500):
@@ -69,9 +69,11 @@ class RRT:
 
         self.node_list = [self.start]
         self.list_of_angle = [0]
+        self.visited_nodes = []
         # for _ in range(self.max_iter):
         while True:
             rnd_node = self.get_random_node()
+            self.visited_nodes.append([rnd_node.x,rnd_node.y])
             # pdb.set_trace()
             nearest_ind = self.get_nearest_node_index(self.node_list, rnd_node)
             nearest_node = self.node_list[nearest_ind]
@@ -138,7 +140,7 @@ class RRT:
         path_angles = [[0]]
         node = self.node_list[goal_ind]
         # print("node_list",node)
-        print("len list generate_final_course",len(self.node_list))
+        # print("len list generate_final_course",len(self.node_list))
         while node.parent is not None:
             path.append([self.calc_grid_position(node.x,self.x_min), self.calc_grid_position(node.y,self.y_min)])
             # path.append([node.x, node.y])
@@ -148,8 +150,8 @@ class RRT:
         path.append([self.calc_grid_position(node.x,self.x_min), self.calc_grid_position(node.y,self.y_min)])
         path_angles.append(self.list_of_angle[self.node_list.index(node)])
 
-        print("generate path",path)
-        return path, path_angles
+        # print("generate path",path)
+        return path, path_angles, self.visited_nodes
 
     def calc_dist_to_goal(self, x, y):
         dx = x - self.end.x
@@ -285,22 +287,26 @@ def main():
         x_obstacle=x_obstacle,
         y_obstacle=y_obstacle)
     # pdb.set_trace()
-    path, angles = rrt.planning(animation=show_animation)
-    print(len(path),len(angles))
+    path, angles, visited_nodes = rrt.planning(animation=show_animation)
+    # print(len(path),len(angles))
     path_x = [x for (x, y) in path]
     path_y = [y for (x, y) in path]
+    visited_x = [x for (x, y) in visited_nodes]
+    visited_y = [y for (x, y) in visited_nodes]
+    print("vistedx", visited_x)
     import csv
-    with open('file1.csv','w+') as csvfile:
-        filewriter= csv.writer(csvfile)
-        filewriter.writerows(path)
+    # with open('file1.csv','w+') as csvfile:
+    #     filewriter= csv.writer(csvfile)
+    #     filewriter.writerows(path)
     # angle = rrt.calc_angle(path_x,path_y)
     fig=plt.figure()
+    plt.plot(visited_x, visited_y, '.g')
     plt.plot(x_obstacle, y_obstacle, ".k")
     plt.plot(start[0], start[1], "og")
     plt.plot(end[0], end[1], "xb")
     plt.grid(True)
     plt.axis("equal")
-    print("path", path)
+    # print("path", path)
     path = path[1:]
     # plt.plot([x for (x, y) in path], [y for (x, y) in path], '-r')
     # plt.show()
@@ -348,6 +354,8 @@ def main():
     if show_animation:
     #     rrt.draw_graph()
         plt.plot([x for (x, y) in path], [y for (x, y) in path], '-r')
+        
+
         plt.grid(True)
         plt.pause(0.01)  # Need for Mac
         plt.show()

@@ -43,7 +43,7 @@ class AStarPath:
     def check_validity(self, node):
         x_position = self.calc_grid_position(node.x, self.x_min)
         y_position = self.calc_grid_position(node.y, self.y_min)
-        print(node.x, node.y)
+        # print(node.x, node.y)
         if x_position < self.x_min:
             return False
         elif y_position < self.y_min:
@@ -131,7 +131,7 @@ class AStarPath:
 
         while True:
             if len(record_open) == 0:
-                print('Check Record Validity')
+                # print('Check Record Validity')
                 break
 
             total_cost = min(record_open, key=lambda x: record_open[x].cost + self.calc_heuristic(end_node, record_open[x]))
@@ -143,7 +143,7 @@ class AStarPath:
                     plt.pause(0.001)
             
             if cost_collection.x == end_node.x and cost_collection.y == end_node.y:
-                print("Finished!")
+                # print("Finished!")
                 end_node.path = cost_collection.path
                 end_node.cost = cost_collection.cost
                 break
@@ -201,7 +201,7 @@ def main():
     # pdb.set_trace()
     # if show_animation:
     fig = plt.figure()
-    print(len(x_obstacle),len(y_obstacle))
+    # print(len(x_obstacle),len(y_obstacle))
 
     plt.plot(x_obstacle, y_obstacle, ".k")
     plt.plot(start_x, start_y, "og")
